@@ -41,10 +41,9 @@ export class FileUploadService {
         return false;
       }
 
-
     } catch (error) {
         console.log(error);
         return false;
     }
-  }s
+  }
 }

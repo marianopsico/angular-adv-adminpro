@@ -2,20 +2,20 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators'; // el tap dispara un efecto secundario
+import { catchError, delay, map, tap } from 'rxjs/operators'; // el tap dispara un efecto secundario
 
 import { environment } from 'src/environments/environment';
 import { Usuario } from 'src/models/usuario.model';
+import Swal from 'sweetalert2';
+import { CargarUsuario } from '../interfaces/cargar-usuarios.interface';
 
 import { LoginForm } from '../interfaces/login-form.interface';
 import { RegisterForm } from '../interfaces/register-form.interface';
 
 // ! manejamos todas las peticiones HTTP con un servicio personalizado
-
 const base_url = environment.base_url;
 
 declare const gapi: any;
-
 
 @Injectable({
   providedIn: 'root'
@@ -35,15 +35,19 @@ export class UsuarioService {
               // tenemos una sola instancia de cada cosa
                 this.googleInit(); // este metodo se ejecuta una sola vez
                }
-
   get token(): string {
     return localStorage.getItem('token') || '';
   };
-
   get uid(): string {
     return this.usuario.uid || '';
   } 
-
+  get headers() {
+    return {
+      headers: {
+        'x-token': this.token
+        }
+    }
+  }
   googleInit() {
 
     return new Promise( resolve => { // a diferencia de los observables las promesas siempre se ejecutan
@@ -58,7 +62,6 @@ export class UsuarioService {
       })
     });
   }
-
   logout() {
     localStorage.removeItem('token');
     
@@ -70,7 +73,6 @@ export class UsuarioService {
       })
     });
   }
-
   // usamos el renew token
   validarToken(): Observable<boolean> {
   
@@ -100,7 +102,6 @@ export class UsuarioService {
       catchError( error => of (false) ) // atrapa el error de este flujo y regresa un nuevo obeservable con el valor false, no se logro autenticar
       );
   }
-
   crearUsuario( formData: RegisterForm ) {
     
     // como es un observable me tengo que subscribir, con el return ya
@@ -118,7 +119,6 @@ export class UsuarioService {
                     )
   
   }
-
   actualizarPerfil( data: {email: string, nombre: string, role: string  }) {
 
     data = {
@@ -126,13 +126,8 @@ export class UsuarioService {
       role: this.usuario.role
     };
 
-    return this.http.put(`${base_url}/usuarios/${ this.uid }`, data, { 
-      headers: {
-      'x-token': this.token
-      }
-    })
+    return this.http.put(`${base_url}/usuarios/${ this.uid }`, data, this.headers );
   }
-
   login( formData: LoginForm ) {
     
     return this.http.post(`${base_url}/login`, formData )
@@ -147,7 +142,6 @@ export class UsuarioService {
       )
   
   }
-
   loginGoogle( token ) {
     
     return this.http.post(`${base_url}/login/google`, { token } )
@@ -159,5 +153,33 @@ export class UsuarioService {
         })
       )
   
+  }
+  cargarUsuarios( desde: number = 0 ) {
+
+    // localhost:3000/api/usuarios?desde=0
+    const url = `${ base_url }/usuarios?desde=${ desde }`;
+    return this.http.get<CargarUsuario>(url, this.headers)
+    .pipe(
+      // delay(5000),
+      map( resp => {
+        const usuarios = resp.usuarios.map( 
+          user => new Usuario(user.nombre, user.email, '', user.img, user.google, user.role, user.uid) )
+
+        // console.log( resp );
+        // es fundamental retormar la respuesta
+        return {
+          total: resp.total,
+          usuarios
+        };
+      })
+    )
+  }
+  eliminarUsuario( usuario: Usuario ) {
+
+    const url = `${ base_url }/usuarios/${ usuario.uid }`;
+    return this.http.delete(url, this.headers);
+  }
+  guardarUsuario( usuario: Usuario ) {
+    return this.http.put(`${base_url}/usuarios/${ usuario.uid }`, usuario, this.headers );
   }
 }
