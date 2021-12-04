@@ -38,6 +38,11 @@ export class UsuarioService {
   get token(): string {
     return localStorage.getItem('token') || '';
   };
+
+  get role(): 'ADMIN_ROLE' | 'USER_ROLE' { // el rol si o si es uno de esto dos (ver modelo)
+    return this.usuario.role;
+  }
+
   get uid(): string {
     return this.usuario.uid || '';
   } 
@@ -62,9 +67,15 @@ export class UsuarioService {
       })
     });
   }
+
+  guardarLocalStorage( token: string, menu: any) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('menu', JSON.stringify(menu) ); // como unicamneten se puede grabar un string lo convertimos
+  }
+
   logout() {
     localStorage.removeItem('token');
-    
+    localStorage.removeItem('menu'); // Borrar menu
 
     this.auth2.signOut().then( () => {
 
@@ -95,7 +106,8 @@ export class UsuarioService {
         this.usuario = new Usuario(nombre, email,'', img , google, role, uid);
 
         // renovamos el token
-        localStorage.setItem('token', resp.token);
+        this.guardarLocalStorage( resp.token, resp.menu );
+
         return true;
       }), 
       // el of retorna un nuevo observable es para no romper el ciclo
@@ -112,7 +124,7 @@ export class UsuarioService {
                       tap( (resp: any) => {
                         // si tenemos un email que existe entonces lo vamos a guardar 
                         // en el localStorage
-                        localStorage.setItem('token', resp.token);
+                        this.guardarLocalStorage( resp.token, resp.menu );
 
                         // console.log( resp );
                       })
@@ -135,7 +147,7 @@ export class UsuarioService {
         tap( (resp: any) => {
           // si tenemos un email que existe entonces lo vamos a guardar 
           // en el localStorage
-          localStorage.setItem('token', resp.token);
+          this.guardarLocalStorage( resp.token, resp.menu );
 
           // console.log( resp );
         })
@@ -148,7 +160,7 @@ export class UsuarioService {
       .pipe(
         tap( (resp: any) => {
           
-          localStorage.setItem('token', resp.token);
+          this.guardarLocalStorage( resp.token, resp.menu );
 
         })
       )
