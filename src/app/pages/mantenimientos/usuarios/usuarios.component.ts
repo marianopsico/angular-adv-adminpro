@@ -61,7 +61,7 @@ export class UsuariosComponent implements OnInit, OnDestroy {
 
     if ( this.desde < 0 ) {
       this.desde = 0;
-    } else if ( this.desde > this.totalUsarios ) {
+    } else if ( this.desde >= this.totalUsarios ) {
       this.desde -= valor; 
     }
     this.cargarUsuarios();
